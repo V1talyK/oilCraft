@@ -40,6 +40,7 @@ app.layout = dbc_container([
                  data=[],
                  editable = true,
                  row_deletable = true),
+                 html_button("Add Row", id="adding-rows-button", n_clicks=0),
                  html_table([
                     html_thead(html_tr(html_th.(["№","x","y"]))),
                     html_tbody([html_tr(html_td.([1, 500, 500])),
@@ -82,9 +83,6 @@ callback!(
             println(typeof(x2))
             println(typeof(fig))
             println(tlb_data)
-            #update!(x2, 2; x=x_new)
-            #update!(x2, 2; y=y_new)
-            #update!(x2, 2)
             tlb_data = copy(tlb_data)
             println(tlb_data)
             #println(tlb_data[1])
@@ -104,6 +102,38 @@ callback!(
 
     end
     return x2, tlb_data
+end
+
+callback!(
+    app,
+    Output("map1", "figure"),
+    Input("tlb1", "data")
+) do tlb_data
+    x_tlb = Base.get(tlb_data,:x,0)
+    y_tlb = Base.get(tlb_data,:y,0)
+    lns = scatter(x=x_tlb,
+                    y=y_tlb,
+                    mode="markers",
+                    marker_color="black")
+
+
+    x2 = plot([hm, lns]);
+    return x2
+end
+
+callback!(
+    app,
+    Output("tlb1", "data"),
+    Input("editing-rows-button", "n_clicks"),
+    State("tlb1", "data"),
+) do n_clicks, rows
+    println("---------")
+    println(n_clicks)
+    if n_clicks > 1
+        rows = copy(rows)
+        push!(rows, Dict(Symbol("wi")=>length(rows)+1, Symbol("x")=>"", Symbol("y")=>""))
+    end
+    return rows
 end
 
 run_server(app, "0.0.0.0", 8050)
