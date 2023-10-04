@@ -37,11 +37,17 @@ app.layout = dbc_container([
                 html_div(className = "nine columns",
                         dcc_graph(id = "map1", animate = true,
                         figure = fig
-                        ))],
-                    ), style = Dict("border" => "0.5px solid", "border-radius" => 5)
-                )
-        ])
-    ])
+                        )),
+                 dash_datatable(id = "tlb1",)
+                 html_table([
+                    html_thead(html_tr(html_th.(["№","x","y"]))),
+                    html_tbody([html_tr(html_td.([1, 500, 500])),
+                                html_tr(html_td.([2, 250, 255]))])
+                        ],
+                    )], style = Dict("border" => "0.5px solid", "border-radius" => 5)
+
+        ))
+    ])])
 
 callback!(
     app,
