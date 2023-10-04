@@ -38,7 +38,13 @@ app.layout = dbc_container([
                         dcc_graph(id = "map1", animate = true,
                         figure = fig
                         )),
-                 dash_datatable(id = "tlb1",)
+                 dash_datatable(id = "tlb1",
+                 columns = [Dict("name"=>"№", "id"=>1),
+                            Dict("name"=>"X", "id"=>2),
+                            Dict("name"=>"Y", "id"=>3)],
+                 data=[ Dict(1=>1, 2=>3, 3=>4), Dict(1=>5, 2=>4, 3=>10)],
+                 editable = true,
+                 row_deletable = true),
                  html_table([
                     html_thead(html_tr(html_th.(["№","x","y"]))),
                     html_tbody([html_tr(html_td.([1, 500, 500])),
@@ -52,10 +58,11 @@ app.layout = dbc_container([
 callback!(
     app,
     Output("map1", "figure"),
+    Output("tlb1", "data"),
     Input("map1", "clickData"),
-    State("map1", "figure")
-    #State("map", "figure")
-) do clickData, x2
+    State("map1", "figure"),
+    State("tlb1", "data")
+) do clickData, x2, tlb_data
     #points = clickData.points[1]
     println("hi")
     println(clickData)
@@ -78,9 +85,15 @@ callback!(
         # update figure data (in this case it's the last trace)
         println(typeof(x2))
         println(typeof(fig))
+        println(tlb_data)
         #update!(x2, 2; x=x_new)
         #update!(x2, 2; y=y_new)
         #update!(x2, 2)
+        tlb_data = copy(tlb_data)
+        println(tlb_data)
+        println(tlb_data[1])
+        Dict("1"=>rand(1:10), "2"=>x, "3"=>y)
+        push!(tlb_data, Dict(Symbol("1")=>rand(1:10), Symbol("2")=>x, Symbol("3")=>y))
 
         lns = scatter(x=x_new,
                         y=y_new,
@@ -91,7 +104,7 @@ callback!(
         x2 = plot([hm, lns]);
 
     end
-    return x2
+    return x2, tlb_data
 end
 
 run_server(app, "0.0.0.0", 8050)
