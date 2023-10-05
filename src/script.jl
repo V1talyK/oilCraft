@@ -40,7 +40,9 @@ app.layout = dbc_container([
                  data=[],
                  editable = true,
                  row_deletable = true),
-                 html_button("Add Row", id="adding-rows-button", n_clicks=0),
+                 html_button(id="editing-rows-button", children = "submit", n_clicks=0),
+                 dcc_input(id = "input-1-state", type = "text", value = "Montreal"),
+                 html_div(id = "output-state"),
                  html_table([
                     html_thead(html_tr(html_th.(["№","x","y"]))),
                     html_tbody([html_tr(html_td.([1, 500, 500])),
@@ -51,89 +53,122 @@ app.layout = dbc_container([
         ))
     ])])
 
+# callback!(
+#     app,
+#     Output("map1", "figure"),
+#     Output("tlb1", "data"),
+#     Input("map1", "clickData"),
+#     State("map1", "figure"),
+#     State("tlb1", "data")
+# ) do clickData, x2, tlb_data
+#     #points = clickData.points[1]
+#     println("hi")
+#     println(clickData)
+#     # println("h2")
+#     # println(x2)
+#     if isnothing(clickData)
+#         PreventUpdate()
+#     else
+#         if length(tlb_data)<5
+#             points = clickData["points"][1]
+#             x = points["x"]
+#             y = points["y"]
+#
+#             # get scatter trace (in this case it's the last trace)
+#             println(x2.data[2])
+#             scatter_x = x2.data[2]["x"]
+#             scatter_y = x2.data[2]["y"]
+#             x_new = vcat(scatter_x, x)
+#             y_new = vcat(scatter_y, y)
+#
+#             # update figure data (in this case it's the last trace)
+#             println(typeof(x2))
+#             println(typeof(fig))
+#             println(tlb_data)
+#             tlb_data = copy(tlb_data)
+#             println(tlb_data)
+#             #println(tlb_data[1])
+#             #Dict("1"=>rand(1:10), "2"=>x, "3"=>y)
+#             push!(tlb_data, Dict(Symbol("wi")=>length(tlb_data)+1, Symbol("x")=>x, Symbol("y")=>y))
+#
+#             lns = scatter(x=x_new,
+#                             y=y_new,
+#                             mode="markers",
+#                             marker_color="black")
+#
+#
+#             x2 = plot([hm, lns]);
+#         else
+#
+#         end
+#
+#     end
+#     return x2, tlb_data
+# end
+#
+# callback!(
+#     app,
+#     Output("map1", "figure"),
+#     Input("tlb1", "data")
+# ) do tlb_data
+#     x_tlb = Base.get(tlb_data,:x,0)
+#     y_tlb = Base.get(tlb_data,:y,0)
+#     lns = scatter(x=x_tlb,
+#                     y=y_tlb,
+#                     mode="markers",
+#                     marker_color="black")
+#
+#
+#     x2 = plot([hm, lns]);
+#     return x2
+# end
+
 callback!(
     app,
-    Output("map1", "figure"),
     Output("tlb1", "data"),
-    Input("map1", "clickData"),
-    State("map1", "figure"),
-    State("tlb1", "data")
-) do clickData, x2, tlb_data
-    #points = clickData.points[1]
-    println("hi")
-    println(clickData)
-    # println("h2")
-    # println(x2)
-    if isnothing(clickData)
-        PreventUpdate()
-    else
-        if length(tlb_data)<5
-            points = clickData["points"][1]
-            x = points["x"]
-            y = points["y"]
-
-            # get scatter trace (in this case it's the last trace)
-            println(x2.data[2])
-            scatter_x = x2.data[2]["x"]
-            scatter_y = x2.data[2]["y"]
-            x_new = vcat(scatter_x, x)
-            y_new = vcat(scatter_y, y)
-
-            # update figure data (in this case it's the last trace)
-            println(typeof(x2))
-            println(typeof(fig))
-            println(tlb_data)
-            tlb_data = copy(tlb_data)
-            println(tlb_data)
-            #println(tlb_data[1])
-            #Dict("1"=>rand(1:10), "2"=>x, "3"=>y)
-            push!(tlb_data, Dict(Symbol("wi")=>length(tlb_data)+1, Symbol("x")=>x, Symbol("y")=>y))
-
-            lns = scatter(x=x_new,
-                            y=y_new,
-                            mode="markers",
-                            marker_color="black")
-
-
-            x2 = plot([hm, lns]);
-        else
-
-        end
-
-    end
-    return x2, tlb_data
-end
-
-callback!(
-    app,
     Output("map1", "figure"),
-    Input("tlb1", "data")
-) do tlb_data
-    x_tlb = Base.get(tlb_data,:x,0)
-    y_tlb = Base.get(tlb_data,:y,0)
-    lns = scatter(x=x_tlb,
-                    y=y_tlb,
-                    mode="markers",
-                    marker_color="black")
-
-
-    x2 = plot([hm, lns]);
-    return x2
-end
-
-callback!(
-    app,
-    Output("tlb1", "data"),
     Input("editing-rows-button", "n_clicks"),
     State("tlb1", "data"),
 ) do n_clicks, rows
     println("---------")
     println(n_clicks)
+    println(rows)
     if n_clicks > 1
-        rows = copy(rows)
-        push!(rows, Dict(Symbol("wi")=>length(rows)+1, Symbol("x")=>"", Symbol("y")=>""))
+         if !isnothing(rows)
+             rows = copy(rows)
+             push!(rows, Dict(Symbol("wi")=>length(rows)+1))
+         else
+             rows =  [Dict{Symbol, Int64}(Symbol("wi")=>1)]
+         end
+         x_tlb, y_tlb = check_tlb(rows)
+         lns = scatter(x=x_tlb,
+                       y=y_tlb,
+                       mode="markers",
+                       marker_color="black")
+
+
+         x2 = plot([hm, lns]);
+         return rows, x2
     end
-    return rows
+    return [], fig
 end
 
-run_server(app, "0.0.0.0", 8050)
+run_server(app, "0.0.0.0", 8050, debug=true)
+
+function check_tlb(rows)
+    x_tlb = get.(rows,:x,-1)
+    y_tlb = get.(rows,:y,-1)
+    flag = trues(length(x_tlb))
+    for (k,v) in enumerate(x_tlb)
+        if typeof(v) == String
+            x_tlb[k] = tryparse(Float64, v)
+        end
+    end
+    for (k,v) in enumerate(y_tlb)
+        if typeof(v) == String
+            y_tlb[k] = tryparse(Float64, v)
+        end
+    end
+    flag .= .&(x_tlb.>=0, y_tlb.>=0)
+    return x_tlb[flag], y_tlb[flag]
+end
