@@ -48,59 +48,75 @@ app.layout = dbc_container([
         ))
     ])])
 
-# callback!(
-#     app,
-#     Output("map1", "figure"),
-#     Output("tlb1", "data"),
-#     Input("map1", "clickData"),
-#     State("map1", "figure"),
-#     State("tlb1", "data")
-# ) do clickData, x2, tlb_data
-#     #points = clickData.points[1]
-#     println("hi")
-#     println(clickData)
-#     # println("h2")
-#     # println(x2)
-#     if isnothing(clickData)
-#         PreventUpdate()
-#     else
-#         if length(tlb_data)<5
-#             points = clickData["points"][1]
-#             x = points["x"]
-#             y = points["y"]
-#
-#             # get scatter trace (in this case it's the last trace)
-#             println(x2.data[2])
-#             scatter_x = x2.data[2]["x"]
-#             scatter_y = x2.data[2]["y"]
-#             x_new = vcat(scatter_x, x)
-#             y_new = vcat(scatter_y, y)
-#
-#             # update figure data (in this case it's the last trace)
-#             println(typeof(x2))
-#             println(typeof(fig))
-#             println(tlb_data)
-#             tlb_data = copy(tlb_data)
-#             println(tlb_data)
-#             #println(tlb_data[1])
-#             #Dict("1"=>rand(1:10), "2"=>x, "3"=>y)
-#             push!(tlb_data, Dict(Symbol("wi")=>length(tlb_data)+1, Symbol("x")=>x, Symbol("y")=>y))
-#
-#             lns = scatter(x=x_new,
-#                             y=y_new,
-#                             mode="markers",
-#                             marker_color="black")
-#
-#
-#             x2 = plot([hm, lns]);
-#         else
-#
-#         end
-#
-#     end
-#     return x2, tlb_data
-# end
-#
+callback!(
+    app,
+    #Output("map1", "figure"),
+    Output("tlb1", "data"),
+    Input("map1", "clickData"),
+    State("map1", "figure"),
+    State("tlb1", "data")
+) do clickData, x2, tlb_data
+    #points = clickData.points[1]
+    println("hi")
+    println(clickData)
+    # println("h2")
+    # println(x2)
+    if isnothing(clickData)
+        PreventUpdate()
+    else
+        #if length(tlb_data)<5
+            points = clickData["points"][1]
+            x = points["x"]
+            y = points["y"]
+
+            # get scatter trace (in this case it's the last trace)
+            println(x2.data[2])
+            well_id, well_x, well_y = check_tlb(tlb_data)
+            #scatter_x = x2.data[2]["x"]
+            #scatter_y = x2.data[2]["y"]
+            wi_out = collect(1:5)
+            x_out = zeros(5).-1
+            y_out = zeros(5).-1
+
+            id = indexin(well_id, wi_out)
+            x_out[id] = well_x
+            y_out[id] = well_y
+
+            empty_wi = setdiff(wi_out, well_id)
+            if length(empty_wi)>0
+                x_out[empty_wi[1]] = x
+                y_out[empty_wi[1]] = y
+            end
+            #x_new = vcat(well_x, x)
+            #y_new = vcat(well_y, y)
+            #well_id_new = vcat(well_id, maximum(well_id)+1)
+            #println(x_out)
+            # update figure data (in this case it's the last trace)
+            # println(typeof(x2))
+            # println(typeof(fig))
+            tlb_data = copy(tlb_data)
+            println(tlb_data)
+            for (k,v) in enumerate(tlb_data)
+                ia = findfirst(v[:wi].==wi_out)
+                v[:xx] = x_out[ia]
+                v[:yy] = y_out[ia]
+            end
+
+            lns = scatter(x=x_out,
+                            y=y_out,
+                            mode="markers",
+                            marker_color="black")
+
+
+            x2 = plot([hm, lns]);
+        #else
+
+        #end
+
+    end
+    return tlb_data
+end
+
 callback!(
     app,
     Output("map1", "figure"),
