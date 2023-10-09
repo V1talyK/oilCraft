@@ -3,8 +3,12 @@ using Dash
 #using Plotly
 using DashBootstrapComponents
 
-lns = scatter(x=[],
-                y=[],
+include(joinpath(Base.source_dir(),"libs.jl"))
+well_tlb, well_clm = make_empty_tlb()
+well_id, well_x, well_y = check_tlb(well_tlb)
+
+lns = scatter(x=well_x,
+                y=well_y,
                 mode="markers",
                 marker_color="black")
 
@@ -15,10 +19,6 @@ hm = heatmap(x = collect(0:10:1000),
              colorbar_thickness=20)
 fig = plot([hm, lns]);
 fig.plot.data[2].fields
-
-well_clm = [Dict("name"=>"№", "id"=>"wi"),
-            Dict("name"=>"X", "id"=>"x"),
-            Dict("name"=>"Y", "id"=>"y")]
 
 #Dict(1=>1, 2=>3, 3=>4), Dict(1=>5, 2=>4, 3=>10)
 
@@ -37,18 +37,13 @@ app.layout = dbc_container([
                         )),
                  dash_datatable(id = "tlb1",
                  columns = well_clm,
-                 data=[],
+                 data = well_tlb,
                  editable = true,
-                 row_deletable = true),
-                 html_button(id="editing-rows-button", children = "submit", n_clicks=0),
-                 dcc_input(id = "input-1-state", type = "text", value = "Montreal"),
+                 row_deletable = false),
+                 #html_button(id="editing-rows-button", children = "submit", n_clicks=0),
+                 #dcc_input(id = "input-1-state", type = "text", value = "Montreal"),
                  html_div(id = "output-state"),
-                 html_table([
-                    html_thead(html_tr(html_th.(["№","x","y"]))),
-                    html_tbody([html_tr(html_td.([1, 500, 500])),
-                                html_tr(html_td.([2, 250, 255]))])
-                        ],
-                    )], style = Dict("border" => "0.5px solid", "border-radius" => 5)
+                 ], style = Dict("border" => "0.5px solid", "border-radius" => 5)
 
         ))
     ])])
@@ -106,69 +101,50 @@ app.layout = dbc_container([
 #     return x2, tlb_data
 # end
 #
-# callback!(
-#     app,
-#     Output("map1", "figure"),
-#     Input("tlb1", "data")
-# ) do tlb_data
-#     x_tlb = Base.get(tlb_data,:x,0)
-#     y_tlb = Base.get(tlb_data,:y,0)
-#     lns = scatter(x=x_tlb,
-#                     y=y_tlb,
-#                     mode="markers",
-#                     marker_color="black")
-#
-#
-#     x2 = plot([hm, lns]);
-#     return x2
-# end
-
 callback!(
     app,
-    Output("tlb1", "data"),
     Output("map1", "figure"),
-    Input("editing-rows-button", "n_clicks"),
-    State("tlb1", "data"),
-) do n_clicks, rows
-    println("---------")
-    println(n_clicks)
-    println(rows)
-    if n_clicks > 1
-         if !isnothing(rows)
-             rows = copy(rows)
-             push!(rows, Dict(Symbol("wi")=>length(rows)+1))
-         else
-             rows =  [Dict{Symbol, Int64}(Symbol("wi")=>1)]
-         end
-         x_tlb, y_tlb = check_tlb(rows)
-         lns = scatter(x=x_tlb,
-                       y=y_tlb,
-                       mode="markers",
-                       marker_color="black")
+    Input("tlb1", "data")
+) do tlb_data
+    well_id, x_tlb, y_tlb = check_tlb(tlb_data)
+    lns = scatter(x=x_tlb,
+                    y=y_tlb,
+                    mode="markers",
+                    marker_color="black")
 
 
-         x2 = plot([hm, lns]);
-         return rows, x2
-    end
-    return [], fig
+    x2 = plot([hm, lns]);
+    return x2
 end
+
+# callback!(
+#     app,
+#     Output("tlb1", "data"),
+#     Output("map1", "figure"),
+#     Input("editing-rows-button", "n_clicks"),
+#     State("tlb1", "data"),
+# ) do n_clicks, rows
+#     println("---------")
+#     println(n_clicks)
+#     println(rows)
+#     if n_clicks > 1
+#          if !isnothing(rows)
+#              rows = copy(rows)
+#              push!(rows, Dict(Symbol("wi")=>length(rows)+1))
+#          else
+#              rows =  [Dict{Symbol, Int64}(Symbol("wi")=>1)]
+#          end
+#          x_tlb, y_tlb = check_tlb(rows)
+#          lns = scatter(x=x_tlb,
+#                        y=y_tlb,
+#                        mode="markers",
+#                        marker_color="black")
+#
+#
+#          x2 = plot([hm, lns]);
+#          return rows, x2
+#     end
+#     return [], fig
+# end
 
 run_server(app, "0.0.0.0", 8050, debug=true)
-
-function check_tlb(rows)
-    x_tlb = get.(rows,:x,-1)
-    y_tlb = get.(rows,:y,-1)
-    flag = trues(length(x_tlb))
-    for (k,v) in enumerate(x_tlb)
-        if typeof(v) == String
-            x_tlb[k] = tryparse(Float64, v)
-        end
-    end
-    for (k,v) in enumerate(y_tlb)
-        if typeof(v) == String
-            y_tlb[k] = tryparse(Float64, v)
-        end
-    end
-    flag .= .&(x_tlb.>=0, y_tlb.>=0)
-    return x_tlb[flag], y_tlb[flag]
-end
