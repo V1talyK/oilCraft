@@ -14,6 +14,9 @@ nw = 6;
 well_tlb, well_clm = make_empty_tlb(nw)
 well_id, well_x, well_y = check_tlb(well_tlb)
 kin_figure = kin_fig()
+plot(kin_figure)
+press_figure = press_fig()
+qq_figure = qq_fig()
 
 lns = scatter(x=well_x,
                 y=well_y,
@@ -71,13 +74,22 @@ app.layout = dbc_container([
                  ], style = Dict("border" => "0.5px solid", "border-radius" => 5)
 
         )),
-        dbc_col(
+        dbc_col(dbc_row([
             dcc_graph(
                 id = "kin",
                 animate = true,
-                figure = kin_figure)
-                )
-    ])])
+                figure = kin_figure),
+            dcc_graph(
+                id = "press",
+                animate = true,
+                figure = press_figure),
+            dcc_graph(
+                id = "qq",
+                animate = true,
+                figure = qq_figure)
+                ]))
+    ]),
+    dbc_progress(value=75, striped=true)])
 
 callback!(
     app,
@@ -136,7 +148,8 @@ callback!(
             lns = scatter(x=x_out,
                             y=y_out,
                             mode="markers",
-                            marker_color="black")
+                            marker_color="black",
+                            text = wi_out)
 
 
             x2 = plot([hm, lns]);
@@ -191,10 +204,13 @@ callback!(
 
     lns = scatter(x=x_tlb,
                  y=y_tlb,
-                 mode="markers",
-                 marker_color="black")
+                 mode="markers+text",
+                 marker_color="black",
+                 text = well_id,
+                 textposition="bottom right")
 
     x2 = Plot([hm, lns]);
+
     # fig1 = copy(fig1)
     #println(typeof(fig1))
     #println(keys(fig1))
@@ -249,11 +265,15 @@ end
 callback!(
     app,
     Output("kin", "figure"),
+    Output("press", "figure"),
+    Output("qq", "figure"),
     Input("run_button", "n_clicks"),
     State("tlb1", "data"),
     State("time_slider", "value"),
-    State("kin", "figure")
-) do n_clicks, tlb_data, time_val, kin_figure
+    State("kin", "figure"),
+    State("press", "figure"),
+    State("qq", "figure")
+) do n_clicks, tlb_data, time_val, kin_figure, press_figure, qq_figure
 
     if n_clicks > 0
         well_id, x_tlb, y_tlb = check_tlb(tlb_data)
@@ -263,21 +283,24 @@ callback!(
         if length(x_tlb)==nw
             println("sim")
             wxy = collect(zip(x_tlb, y_tlb))
-            rsl, kin, kin1, kin2 = get_srf(wxy);
+            rsl, kin, kin1, kin2, wtc, qo = get_srf(wxy);
             PM[:,2:end] .= rsl.PM
         end
 
-        kin_figure = copy(kin_figure)
-        println(kin_figure)
-        kin_figure[:data][1][:x]=1:60
-        kin_figure[:data][1][:y]=kin
-        push!(kin_figure[:data],copy(kin_figure[:data][1]))
-        push!(kin_figure[:data],copy(kin_figure[:data][1]))
-        kin_figure[:data][2][:y]=kin1
-        kin_figure[:data][3][:y]=kin2
-        return kin_figure
+        kin_figure = update_fig(kin_figure, vcat([kin,kin1,kin2],eachrow(wtc)))
+        press_figure = update_fig(press_figure, eachrow(rsl.ppl))
+        qq_figure = update_fig(qq_figure, vcat(eachrow(rsl.qw), eachrow(qo)))
+        # kin_figure = copy(kin_figure)
+        # println(kin_figure)
+        # kin_figure[:data][1][:x]=1:60
+        # kin_figure[:data][1][:y]=kin
+        # push!(kin_figure[:data],copy(kin_figure[:data][1]))
+        # push!(kin_figure[:data],copy(kin_figure[:data][1]))
+        # kin_figure[:data][2][:y]=kin1
+        # kin_figure[:data][3][:y]=kin2
+        return kin_figure, press_figure, qq_figure
     end
-    return kin_figure
+    return kin_figure, press_figure, qq_figure
 end
 
 run_server(app, "0.0.0.0", 8050, debug=true)

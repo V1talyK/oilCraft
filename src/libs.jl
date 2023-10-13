@@ -45,6 +45,61 @@ end
 
 function kin_fig()
     figure = (
+        data = [( x = [], y = [], name ="КИН", line = Dict("color"=>"#000000"),
+                type = "line", hoverlabel = Dict("font" => Dict("size" => 12))),
+                (x = [],  y = [], name ="КИН_1", line = Dict("color"=>"#0000FF"),
+                type = "line",  hoverlabel = Dict("font" => Dict("size" => 12))),
+                (x = [],  y = [], name ="КИН_2", line = Dict("color"=>"#FF0000"),
+                type = "line", hoverlabel = Dict("font" => Dict("size" => 12))),
+
+                (x = [],  y = [], name ="обв_1", line = Dict("color"=>"#87CEEB"),
+                type = "line", hoverlabel = Dict("font" => Dict("size" => 12))),
+                (x = [],  y = [], name ="обв_3", line = Dict("color"=>"#87CEEB"),
+                type = "line", hoverlabel = Dict("font" => Dict("size" => 12))),
+                (x = [],  y = [], name ="обв_5", line = Dict("color"=>"#87CEEB"),
+                type = "line", hoverlabel = Dict("font" => Dict("size" => 12))),
+
+                (x = [],  y = [], name ="обв_2", line = Dict("color"=>"#FA8072"),
+                type = "line", hoverlabel = Dict("font" => Dict("size" => 12))),
+                (x = [],  y = [], name ="обв_4", line = Dict("color"=>"#FA8072"),
+                type = "line", hoverlabel = Dict("font" => Dict("size" => 12))),
+                (x = [],  y = [], name ="обв_6", line = Dict("color"=>"#FA8072"),
+                type = "line", hoverlabel = Dict("font" => Dict("size" => 12)))
+        ],
+        layout =(
+            xaxis = Dict(
+                "title" => "Месяц",
+                "titlefont" => Dict(
+                    "size" => 14
+                ),
+                "tickfont" => Dict(
+                    "size" => 12
+                ),
+                "range" => [0, 60],
+                "scaleratio" => 1
+            ),
+            yaxis = Dict(
+                "title" => "КИН д.ед.",
+                "titlefont" => Dict(
+                    "size" => 14
+                ),
+                "tickfont" => Dict(
+                    "size" => 12
+                ),
+                "range" => [0, 1],
+                "ticks" => "outside",
+                "tickcolor" => "white",
+                "ticklen" => 10,
+                "scaleratio" => 2
+            ),
+            width = 480,
+            height = 320
+        )
+    )
+    return figure
+end
+function press_fig()
+    figure = (
         data = [(
             x = [],
             y = [],
@@ -66,21 +121,80 @@ function kin_fig()
                 "range" => [0, 60],
             ),
             yaxis = Dict(
-                "title" => "КИН д.ед.",
+                "title" => "Давление МПа.",
                 "titlefont" => Dict(
                     "size" => 14
                 ),
                 "tickfont" => Dict(
                     "size" => 12
                 ),
-                "range" => [0, 1],
+                "range" => [0, 20],
                 "ticks" => "outside",
                 "tickcolor" => "white",
                 "ticklen" => 10
             ),
+            width = 480,
+            height = 320
         )
     )
     return figure
+end
+function qq_fig()
+    figure = (
+        data = [(
+            x = [],
+            y = [],
+            type = "line",
+            hoverlabel = Dict(
+                "font" => Dict("size" => 12)
+            )
+            )
+        ],
+        layout =(
+            xaxis = Dict(
+                "title" => "Месяц",
+                "titlefont" => Dict(
+                    "size" => 14
+                ),
+                "tickfont" => Dict(
+                    "size" => 12
+                ),
+                "range" => [0, 60],
+            ),
+            yaxis = Dict(
+                "title" => "Добыча/Закачка м3",
+                "titlefont" => Dict(
+                    "size" => 14
+                ),
+                "tickfont" => Dict(
+                    "size" => 12
+                ),
+                "range" => [0, 100],
+                "ticks" => "outside",
+                "tickcolor" => "white",
+                "ticklen" => 10
+            ),
+            width = 480,
+            height = 320
+        )
+    )
+    return figure
+end
+
+function update_fig(fig0, data)
+    fig1 = copy(fig0)
+
+    for (k, v) in enumerate(data)
+        if k<=length(fig1[:data])
+            fig1[:data][k][:x]=1:60
+            fig1[:data][k][:y]=data[k]
+            #fig1[:data][k][:line] = Dict("color"=>"#000000")
+        else
+            push!(fig1[:data],copy(fig1[:data][1]))
+            fig1[:data][k][:y]=v
+        end
+    end
+    return fig1
 end
 #
 # html_table([
@@ -91,7 +205,7 @@ end
 #    )
 
 function get_srf(wxy)
-    grd, gdm_prop, prp, x, nt = make_gdm(kp_init = 10,
+    grd, gdm_prop, prp, x, nt = make_gdm(kp_init = 20,
                                          he_init = 1,
                                          nt_init = 60,
                                          nx_init = 100,
@@ -122,5 +236,5 @@ function get_srf(wxy)
     kin = cumsum(sum(qo, dims=1)[:])/(sum(prp.Vp.*(1.0 .- gdm_sat.Sw0))).*gdm_prop.dt
     kin1 = cumsum(sum(qo[1:2:end,:], dims=1)[:])/(sum(prp.Vp.*(1.0 .- gdm_sat.Sw0))).*gdm_prop.dt
     kin2 = cumsum(sum(qo[2:2:end,:], dims=1)[:])/(sum(prp.Vp.*(1.0 .- gdm_sat.Sw0))).*gdm_prop.dt
-    return rsl, kin, kin1, kin2
+    return rsl, kin, kin1, kin2, wtc, qo
 end
