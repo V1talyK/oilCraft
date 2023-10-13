@@ -202,11 +202,13 @@ callback!(
              colorbar_thickness=20,
              uirevision = true)
 
+    clr_list = ["#0000FF", "#FF0000", "#0000FF", "#FF0000", "#0000FF", "#FF0000"]
     lns = scatter(x=x_tlb,
                  y=y_tlb,
                  mode="markers+text",
-                 marker_color="black",
+                 #marker_color="black",
                  text = well_id,
+                 marker = Dict(Symbol("color")=>clr_list[1:length(x_tlb)]),
                  textposition="bottom right")
 
     x2 = Plot([hm, lns]);
